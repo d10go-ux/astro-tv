@@ -658,7 +658,7 @@
           if (cloudRes.ok) data = await cloudRes.json();
         }
 
-        if (data && data.timestamp && (!currentData || data.timestamp !== currentData.timestamp)) {
+        if (data && (data.teamA || data.scoreA !== undefined)) {
           updateOverlay(data);
         }
       } catch (e) {}

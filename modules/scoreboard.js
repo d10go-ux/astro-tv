@@ -32,6 +32,9 @@ const Scoreboard = {
     const { teamA, teamB, sport } = AppState.getAll();
     const s = Scoreboard.state;
 
+    // Disparar sincronização com o OBS na abertura do painel
+    setTimeout(() => Scoreboard.syncOverlay(), 50);
+
     return `
       <div class="view-container">
         <div class="container">

@@ -258,6 +258,7 @@ const TeamSetup = {
     const current = AppState.get(key);
     current[field] = value;
     AppState.set(key, current);
+    if (typeof Scoreboard !== 'undefined') Scoreboard.syncOverlay();
   },
 
   /**
@@ -423,6 +424,7 @@ const TeamSetup = {
 
     const key = slot === 'A' ? 'teamA' : 'teamB';
     AppState.set(key, { ...team });
+    if (typeof Scoreboard !== 'undefined') Scoreboard.syncOverlay();
     App.showToast(`${team.name} carregado para Time ${slot}! 🏆`, 'success');
     App.renderCurrentRoute();
   }
