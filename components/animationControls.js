@@ -217,9 +217,15 @@ const AnimationControls = {
 
     localStorage.setItem('astrotv_anim_event', JSON.stringify(data));
 
-    // HTTP POST para o servidor Node
+    // HTTP POST para o servidor API + Nuvem KVDB
     try {
       fetch('/api/anim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).catch(() => {});
+
+      fetch('https://kvdb.io/Wf8X8ZgJ8jZ7Xp6J9q8Z2k/astrotv_anim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)

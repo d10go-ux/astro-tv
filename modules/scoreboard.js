@@ -779,9 +779,15 @@ const Scoreboard = {
     // Salvar no localStorage para o overlay ler
     localStorage.setItem('astrotv_scoreboard_data', JSON.stringify(data));
 
-    // HTTP POST para o servidor Node (garante sync no OBS Studio instantaneamente)
+    // HTTP POST para o servidor API + Nuvem KVDB (garante sync no OBS Studio instantaneamente no Vercel e Local)
     try {
       fetch('/api/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).catch(() => {});
+
+      fetch('https://kvdb.io/Wf8X8ZgJ8jZ7Xp6J9q8Z2k/astrotv_state', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)

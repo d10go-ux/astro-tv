@@ -619,26 +619,38 @@
       animChannel.onmessage = (e) => handleAnimationEvent(e.data);
     } catch (e) {}
 
-    // Realtime API polling from Node Server (Works 100% inside OBS Studio)
+    // Realtime API polling from Node Server & Cloud KV (Works 100% inside OBS Studio)
     async function syncFromApi() {
       try {
+        let data = null;
         const stateRes = await fetch('/api/state');
         if (stateRes.ok) {
-          const data = await stateRes.json();
-          if (data && (!currentData || data.timestamp !== currentData.timestamp)) {
-            updateOverlay(data);
-          }
+          data = await stateRes.json();
+        }
+        if (!data || !data.timestamp) {
+          const cloudRes = await fetch('https://kvdb.io/Wf8X8ZgJ8jZ7Xp6J9q8Z2k/astrotv_state');
+          if (cloudRes.ok) data = await cloudRes.json();
+        }
+
+        if (data && data.timestamp && (!currentData || data.timestamp !== currentData.timestamp)) {
+          updateOverlay(data);
         }
       } catch (e) {}
 
       try {
+        let animEvent = null;
         const animRes = await fetch('/api/anim');
         if (animRes.ok) {
-          const animEvent = await animRes.json();
-          if (animEvent && animEvent.timestamp && animEvent.timestamp !== window._lastAnimTimestamp) {
-            window._lastAnimTimestamp = animEvent.timestamp;
-            handleAnimationEvent(animEvent);
-          }
+          animEvent = await animRes.json();
+        }
+        if (!animEvent || !animEvent.timestamp) {
+          const cloudAnimRes = await fetch('https://kvdb.io/Wf8X8ZgJ8jZ7Xp6J9q8Z2k/astrotv_anim');
+          if (cloudAnimRes.ok) animEvent = await cloudAnimRes.json();
+        }
+
+        if (animEvent && animEvent.timestamp && animEvent.timestamp !== window._lastAnimTimestamp) {
+          window._lastAnimTimestamp = animEvent.timestamp;
+          handleAnimationEvent(animEvent);
         }
       } catch (e) {}
     }
