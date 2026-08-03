@@ -71,6 +71,7 @@ const Scoreboard = {
                 ${typeof QRCodeWidget !== 'undefined' ? QRCodeWidget.render() : ''}
                 ${typeof StatsManager !== 'undefined' ? StatsManager.render() : ''}
                 ${typeof NewsTicker !== 'undefined' ? NewsTicker.render() : ''}
+                ${typeof LineupManager !== 'undefined' ? LineupManager.render() : ''}
                 ${typeof CompetitionManager !== 'undefined' ? CompetitionManager.render() : ''}
               </div>
 

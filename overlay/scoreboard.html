@@ -461,7 +461,30 @@
         case 'TRIGGER_STATS':
           showStatsOverlay(eventData);
           break;
+
+        case 'TRIGGER_LINEUP':
+          showLineupOverlay(eventData);
+          break;
       }
+    }
+
+    function showLineupOverlay(data) {
+      bannerTitle.textContent = '👕 ESCALAÇÃO OFICIAL DA PARTIDA';
+      const teamA = data.teamA || {};
+      const teamB = data.teamB || {};
+      const rosterA = (data.rosterA || ['#10 Silva', '#7 Santos', '#1 Costa (G)']).join('  •  ');
+      const rosterB = (data.rosterB || ['#9 Lima', '#5 Oliveira', '#12 Souza (G)']).join('  •  ');
+
+      bannerSubtitle.innerHTML = `
+        <div style="margin-top:10px;text-align:center;">
+          <div style="color:${teamA.color || '#7c5cfc'};font-weight:800;font-size:16px;">${teamA.name || 'Time A'}: ${rosterA}</div>
+          <div style="color:${teamB.color || '#00e5d0'};font-weight:800;font-size:16px;margin-top:6px;">${teamB.name || 'Time B'}: ${rosterB}</div>
+        </div>
+      `;
+      bannerContainer.classList.add('active');
+      setTimeout(() => {
+        bannerContainer.classList.remove('active');
+      }, data.duration || 8000);
     }
 
     function toggleTickerOverlay(data) {
@@ -574,7 +597,15 @@
       }
     }
 
-    // ── Data Sync ──
+    // ── Instant Realtime Storage Listener (0ms delay on Vercel & Chrome/OBS) ──
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'astrotv_scoreboard_data' && e.newValue) {
+        try { updateOverlay(JSON.parse(e.newValue)); } catch (err) {}
+      }
+      if (e.key === 'astrotv_anim_event' && e.newValue) {
+        try { handleAnimationEvent(JSON.parse(e.newValue)); } catch (err) {}
+      }
+    });
 
     // Listen for Scoreboard BroadcastChannel
     try {

@@ -96,33 +96,44 @@ const Soundboard = {
   },
 
   /**
-   * ⚽ Vinheta de Gol (Tom grave potente + fanfarra sintetizada)
+   * ⚽ Vinheta de Gol / Ponto / Cesta por Modalidade
    */
   playGoalHorn() {
     Soundboard.initContext();
     if (!Soundboard.ctx) return;
 
     const ctx = Soundboard.ctx;
-    const notes = [130.81, 164.81, 196.00, 261.63]; // C3, E3, G3, C4
-    
+    const sport = typeof AppState !== 'undefined' ? AppState.get('sport') : 'futsal';
+
+    let notes = [130.81, 164.81, 196.00, 261.63]; // Futsal: Fanfarra de C3, E3, G3, C4
+    let label = '⚽ Vinheta de Gol';
+
+    if (sport === 'volei') {
+      notes = [261.63, 329.63, 392.00, 523.25]; // Vôlei: Tons agudos vibrantes C4, E4, G4, C5
+      label = '🏐 Vinheta de Ponto do Vôlei';
+    } else if (sport === 'basquete') {
+      notes = [110.00, 138.59, 164.81, 220.00]; // Basquete: Buzina grave A2, C#3, E3, A3
+      label = '🏀 Vinheta de Cesta do Basquete';
+    }
+
     notes.forEach((freq, idx) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.12);
+      osc.type = sport === 'basquete' ? 'square' : 'sawtooth';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.1);
 
-      gain.gain.setValueAtTime(0.2, ctx.currentTime + idx * 0.12);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.2);
+      gain.gain.setValueAtTime(0.25, ctx.currentTime + idx * 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.4);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
 
-      osc.start(ctx.currentTime + idx * 0.12);
-      osc.stop(ctx.currentTime + 1.2);
+      osc.start(ctx.currentTime + idx * 0.1);
+      osc.stop(ctx.currentTime + 1.4);
     });
 
-    if (typeof App !== 'undefined') App.showToast('⚽ Vinheta de Gol disparada!', 'success');
+    if (typeof App !== 'undefined') App.showToast(`${label} disparada!`, 'success');
   },
 
   /**
