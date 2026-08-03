@@ -1,8 +1,39 @@
 {
   "version": 2,
-  "rewrites": [
-    { "source": "/api/update", "destination": "/api/update.js" },
-    { "source": "/api/state", "destination": "/api/state.js" },
-    { "source": "/api/anim", "destination": "/api/anim.js" }
+  "builds": [
+    {
+      "src": "api/*.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "overlay/*.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "style.css",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "app.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "components/*.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "modules/*.js",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    { "src": "/api/update", "dest": "/api/update.js" },
+    { "src": "/api/state", "dest": "/api/state.js" },
+    { "src": "/api/anim", "dest": "/api/anim.js" },
+    { "src": "/(.*)", "dest": "/$1" }
   ]
 }
