@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ASTRO TV — Crie mídias gráficas esportivas profissionais para transmissões ao vivo. Placares, flyers, overlays para OBS Studio e muito mais.">
+  <title>ASTRO TV — Mídias Gráficas Esportivas</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Favicon (inline SVG) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>">
+</head>
+<body>
+
+  <!-- ═══════════ HEADER ═══════════ -->
+  <header class="app-header" id="app-header">
+    <div class="container">
+      <div class="logo" id="logo-home" title="Voltar ao Dashboard">
+        <div class="logo-icon">📡</div>
+        ASTRO TV
+      </div>
+
+      <nav class="main-nav" id="main-nav">
+        <a href="#/" class="nav-link active" data-route="/">Dashboard</a>
+        <a href="#/scoreboard" class="nav-link" data-route="/scoreboard">Placar ao Vivo</a>
+        <a href="#/flyer" class="nav-link" data-route="/flyer">Flyer</a>
+        <a href="#/matchday" class="nav-link" data-route="/matchday">Dia de Jogo</a>
+        <a href="#/lowerthird" class="nav-link" data-route="/lowerthird">Lower Third</a>
+        <a href="#/waitscreen" class="nav-link" data-route="/waitscreen">Tela de Espera</a>
+        <a href="#/builder" class="nav-link" data-route="/builder">Criador de Placar</a>
+        <button class="btn btn-ghost btn-sm" onclick="App.resetAllData()" title="Limpar Cache e Resetar Dados" style="color:var(--text-muted);font-size:12px;margin-left:8px;">
+          🔄 Resetar Dados
+        </button>
+      </nav>
+
+      <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Menu">
+        ☰
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══════════ MAIN CONTENT (SPA) ═══════════ -->
+  <main id="app-container">
+    <!-- Content rendered dynamically by app.js -->
+  </main>
+
+  <!-- ═══════════ TOAST CONTAINER ═══════════ -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ═══════════ SCRIPTS ═══════════ -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="components/colorPicker.js"></script>
+  <script src="components/teamSetup.js"></script>
+  <script src="components/competitionManager.js"></script>
+  <script src="components/animationControls.js"></script>
+  <script src="components/soundboard.js"></script>
+  <script src="components/broadcasterCards.js"></script>
+  <script src="components/socialWall.js"></script>
+  <script src="components/qrCodeWidget.js"></script>
+  <script src="components/statsManager.js"></script>
+  <script src="components/newsTicker.js"></script>
+  <script src="components/templateCard.js"></script>
+  <script src="components/exportPanel.js"></script>
+  <script src="modules/builder.js"></script>
+  <script src="modules/scoreboard.js"></script>
+  <script src="modules/flyer.js"></script>
+  <script src="modules/matchday.js"></script>
+  <script src="modules/lowerthird.js"></script>
+  <script src="modules/waitscreen.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASTRO TV — Scoreboard Overlay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: transparent !important;
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+    }
+    #overlay-root {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      transition: all 0.4s ease;
+    }
+
+    /* Keyframes Broadcast */
+    .anim-in {
+      animation: scorebugIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .anim-out {
+      animation: scorebugOut 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes scorebugIn {
+      0% { opacity: 0; transform: translateY(-60px) scale(0.95); filter: blur(6px); }
+      60% { opacity: 1; transform: translateY(8px) scale(1.02); filter: blur(0); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes scorebugOut {
+      0% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+      100% { opacity: 0; transform: translateY(-60px) scale(0.95); filter: blur(6px); }
+    }
+
+    @keyframes goalWipeIn {
+      0% { opacity: 0; transform: scale(0.4) rotate(-6deg); filter: blur(15px); }
+      50% { opacity: 1; transform: scale(1.1) rotate(2deg); filter: blur(0); }
+      100% { opacity: 1; transform: scale(1) rotate(0deg); }
+    }
+
+    @keyframes livePulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 6px;
+      background: #ff3b30;
+      color: white;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 800;
+      font-size: 9px;
+      border-radius: 3px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      box-shadow: 0 0 8px rgba(255,59,48,0.5);
+    }
+    .live-dot {
+      width: 5px;
+      height: 5px;
+      background: white;
+      border-radius: 50%;
+      animation: livePulse 1.2s ease-in-out infinite;
+    }
+
+    /* Goal / Event Fullscreen Banner Overlay */
+    #banner-container {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(4, 4, 14, 0.75);
+      backdrop-filter: blur(12px);
+      z-index: 99999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    #banner-container.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .banner-title {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 900;
+      font-size: 72px;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      text-shadow: 0 0 40px rgba(124, 92, 252, 0.8), 0 0 80px rgba(0, 229, 208, 0.6);
+      animation: goalWipeIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .banner-subtitle {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: #00e5d0;
+      margin-top: 12px;
+      letter-spacing: 2px;
+    }
+
+    /* Sponsor Ticker Bar under Scorebug */
+    .sponsor-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 4px 16px;
+      background: rgba(0, 0, 0, 0.85);
+      border-radius: 0 0 8px 8px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.7);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <!-- Main Scorebug Container -->
+  <div id="overlay-root" class="anim-in"></div>
+
+  <!-- Fullscreen Broadcast Banner Overlay -->
+  <div id="banner-container">
+    <div class="banner-title" id="banner-title">GOL!</div>
+    <div class="banner-subtitle" id="banner-subtitle">ASTRO TV</div>
+  </div>
+
+  <script>
+    const root = document.getElementById('overlay-root');
+    const bannerContainer = document.getElementById('banner-container');
+    const bannerTitle = document.getElementById('banner-title');
+    const bannerSubtitle = document.getElementById('banner-subtitle');
+
+    let currentData = null;
+    let isVisible = true;
+
+    /**
+     * Updates the main scoreboard overlay
+     */
+    function updateOverlay(data) {
+      if (!data) return;
+      currentData = data;
+
+      const { teamA, teamB, sport, scoreA, scoreB, setsA, setsB, period, timer, template, competition } = data;
+      const periodText = formatPeriod(period, sport);
+
+      if (typeof template === 'object' && template.bgImage) {
+        root.innerHTML = renderCustomScoreboard(teamA, teamB, sport, data, periodText, template, competition);
+      } else if (template === 'classic') {
+        root.innerHTML = renderClassic(teamA, teamB, sport, data, periodText, competition);
+      } else if (template === 'neon') {
+        root.innerHTML = renderNeon(teamA, teamB, sport, data, periodText, competition);
+      } else {
+        root.innerHTML = renderModern(teamA, teamB, sport, data, periodText, competition);
+      }
+    }
+
+    function renderCustomScoreboard(teamA, teamB, sport, s, periodText, customT, comp) {
+      const el = customT.elements || {};
+      const opacity = customT.bgOpacity !== undefined ? customT.bgOpacity : 1;
+
+      return `
+        <div style="position:relative;width:700px;aspect-ratio:16/9;overflow:hidden;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.6);">
+          ${customT.bgImage ? `<img src="${customT.bgImage}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:${opacity};">` : ''}
+
+          <!-- Team A Logo -->
+          ${el.teamA_logo ? `
+            <div style="position:absolute;left:${el.teamA_logo.x}%;top:${el.teamA_logo.y}%;transform:translate(-50%,-50%);width:${el.teamA_logo.size || 36}px;height:${el.teamA_logo.size || 36}px;display:flex;align-items:center;justify-content:center;">
+              ${teamA.logo ? `<img src="${teamA.logo}" style="width:100%;height:100%;object-fit:contain;">` : `<span style="font-size:20px;">🛡️</span>`}
+            </div>
+          ` : ''}
+
+          <!-- Team A Name -->
+          ${el.teamA_name ? `
+            <div style="position:absolute;left:${el.teamA_name.x}%;top:${el.teamA_name.y}%;transform:translate(-50%,-50%);font-size:${el.teamA_name.fontSize}px;color:${el.teamA_name.color};font-family:'${el.teamA_name.fontFamily || 'Outfit'}',sans-serif;font-weight:${el.teamA_name.fontWeight || '700'};">
+              ${teamA.abbr || teamA.name || 'AAA'}
+            </div>
+          ` : ''}
+
+          <!-- Team A Score -->
+          ${el.scoreA ? `
+            <div style="position:absolute;left:${el.scoreA.x}%;top:${el.scoreA.y}%;transform:translate(-50%,-50%);font-size:${el.scoreA.fontSize}px;color:${el.scoreA.color};font-family:'${el.scoreA.fontFamily || 'Orbitron'}',sans-serif;font-weight:${el.scoreA.fontWeight || '900'};" id="score-a">
+              ${s.scoreA}
+            </div>
+          ` : ''}
+
+          <!-- Team B Logo -->
+          ${el.teamB_logo ? `
+            <div style="position:absolute;left:${el.teamB_logo.x}%;top:${el.teamB_logo.y}%;transform:translate(-50%,-50%);width:${el.teamB_logo.size || 36}px;height:${el.teamB_logo.size || 36}px;display:flex;align-items:center;justify-content:center;">
+              ${teamB.logo ? `<img src="${teamB.logo}" style="width:100%;height:100%;object-fit:contain;">` : `<span style="font-size:20px;">🛡️</span>`}
+            </div>
+          ` : ''}
+
+          <!-- Team B Name -->
+          ${el.teamB_name ? `
+            <div style="position:absolute;left:${el.teamB_name.x}%;top:${el.teamB_name.y}%;transform:translate(-50%,-50%);font-size:${el.teamB_name.fontSize}px;color:${el.teamB_name.color};font-family:'${el.teamB_name.fontFamily || 'Outfit'}',sans-serif;font-weight:${el.teamB_name.fontWeight || '700'};">
+              ${teamB.abbr || teamB.name || 'BBB'}
+            </div>
+          ` : ''}
+
+          <!-- Team B Score -->
+          ${el.scoreB ? `
+            <div style="position:absolute;left:${el.scoreB.x}%;top:${el.scoreB.y}%;transform:translate(-50%,-50%);font-size:${el.scoreB.fontSize}px;color:${el.scoreB.color};font-family:'${el.scoreB.fontFamily || 'Orbitron'}',sans-serif;font-weight:${el.scoreB.fontWeight || '900'};" id="score-b">
+              ${s.scoreB}
+            </div>
+          ` : ''}
+
+          <!-- Period -->
+          ${el.period ? `
+            <div style="position:absolute;left:${el.period.x}%;top:${el.period.y}%;transform:translate(-50%,-50%);font-size:${el.period.fontSize}px;color:${el.period.color};font-family:'${el.period.fontFamily || 'Outfit'}',sans-serif;font-weight:${el.period.fontWeight || '600'};">
+              ${periodText}
+            </div>
+          ` : ''}
+
+          <!-- Timer -->
+          ${el.timer ? `
+            <div style="position:absolute;left:${el.timer.x}%;top:${el.timer.y}%;transform:translate(-50%,-50%);font-size:${el.timer.fontSize}px;color:${el.timer.color};font-family:'${el.timer.fontFamily || 'Orbitron'}',sans-serif;font-weight:${el.timer.fontWeight || '700'};" id="timer">
+              ${s.timer}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function formatPeriod(period, sport) {
+      if (sport === 'volei') return `SET ${period}`;
+      if (sport === 'basquete') return period <= 4 ? `Q${period}` : 'PRORR.';
+      return period <= 2 ? `${period}º TEMPO` : 'PRORR.';
+    }
+
+    function darken(hex, amount) {
+      if (!hex) return '#000000';
+      hex = hex.replace('#', '');
+      const r = Math.max(0, parseInt(hex.substr(0,2),16) - amount);
+      const g = Math.max(0, parseInt(hex.substr(2,2),16) - amount);
+      const b = Math.max(0, parseInt(hex.substr(4,2),16) - amount);
+      return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+    }
+
+    function renderBadge(competition) {
+      const text = competition?.badgeText || 'AO VIVO';
+      return `<span class="live-badge"><span class="live-dot"></span> ${text}</span>`;
+    }
+
+    function renderSponsorBar(competition) {
+      if (!competition || !competition.sponsors || competition.sponsors.length === 0) return '';
+      return `
+        <div class="sponsor-bar">
+          <span style="font-size:9px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;">PATROCÍNIO:</span>
+          <span style="font-weight:600;color:white;">${competition.sponsors.join(' • ')}</span>
+        </div>
+      `;
+    }
+
+    // ── Template Renderers ──
+
+    function renderModern(teamA, teamB, sport, s, periodText, comp) {
+      return `
+        <div style="display:flex;flex-direction:column;align-items:center;">
+          <div style="display:flex;align-items:stretch;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.5);font-family:'Outfit',sans-serif;">
+            <div style="background:${teamA.color};padding:10px 20px;min-width:160px;display:flex;align-items:center;gap:10px;">
+              ${teamA.logo ? `<img src="${teamA.logo}" style="width:32px;height:32px;object-fit:contain;border-radius:4px;">` : ''}
+              <span style="font-weight:700;font-size:15px;color:white;text-shadow:0 1px 4px rgba(0,0,0,0.4);">${teamA.abbr || 'AAA'}</span>
+            </div>
+            <div style="background:${darken(teamA.color,30)};padding:8px 18px;display:flex;align-items:center;justify-content:center;">
+              <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:white;" id="score-a">${s.scoreA}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 14px;background:rgba(0,0,0,0.7);min-width:85px;">
+              <div style="margin-bottom:2px;">${renderBadge(comp)}</div>
+              <span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:1px;">${periodText}</span>
+              ${sport !== 'volei' ? `<span style="font-family:'Orbitron',sans-serif;font-weight:700;font-size:15px;color:white;" id="timer">${s.timer}</span>` : ''}
+              ${sport === 'volei' ? `
+                <div style="display:flex;gap:4px;margin-top:3px;">
+                  ${[...Array(3)].map((_,i) => `<div style="width:7px;height:7px;border-radius:50%;background:${i < s.setsA ? '#00e5d0' : 'rgba(255,255,255,0.2)'};"></div>`).join('')}
+                  <span style="font-size:9px;color:rgba(255,255,255,0.3);margin:0 2px;">|</span>
+                  ${[...Array(3)].map((_,i) => `<div style="width:7px;height:7px;border-radius:50%;background:${i < s.setsB ? '#ff6b9d' : 'rgba(255,255,255,0.2)'};"></div>`).join('')}
+                </div>
+              ` : ''}
+            </div>
+            <div style="background:${darken(teamB.color,30)};padding:8px 18px;display:flex;align-items:center;justify-content:center;">
+              <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:white;" id="score-b">${s.scoreB}</span>
+            </div>
+            <div style="background:${teamB.color};padding:10px 20px;min-width:160px;display:flex;align-items:center;gap:10px;justify-content:flex-end;">
+              <span style="font-weight:700;font-size:15px;color:white;text-shadow:0 1px 4px rgba(0,0,0,0.4);text-align:right;">${teamB.abbr || 'BBB'}</span>
+              ${teamB.logo ? `<img src="${teamB.logo}" style="width:32px;height:32px;object-fit:contain;border-radius:4px;">` : ''}
+            </div>
+          </div>
+          ${renderSponsorBar(comp)}
+        </div>
+      `;
+    }
+
+    function renderClassic(teamA, teamB, sport, s, periodText, comp) {
+      return `
+        <div style="font-family:'Outfit',sans-serif;display:flex;flex-direction:column;align-items:center;">
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <div style="display:flex;align-items:stretch;border-radius:4px 4px 0 0;overflow:hidden;">
+              <div style="background:${teamA.color};padding:8px 16px;min-width:180px;display:flex;align-items:center;gap:10px;">
+                ${teamA.logo ? `<img src="${teamA.logo}" style="width:24px;height:24px;object-fit:contain;">` : ''}
+                <span style="color:white;font-weight:700;font-size:14px;text-shadow:0 1px 3px rgba(0,0,0,0.4);">${teamA.name || 'Time A'}</span>
+              </div>
+              <div style="background:rgba(0,0,0,0.85);padding:8px 18px;display:flex;align-items:center;justify-content:center;">
+                <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:20px;color:white;">${s.scoreA}</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:stretch;border-radius:0 0 4px 4px;overflow:hidden;">
+              <div style="background:${teamB.color};padding:8px 16px;min-width:180px;display:flex;align-items:center;gap:10px;">
+                ${teamB.logo ? `<img src="${teamB.logo}" style="width:24px;height:24px;object-fit:contain;">` : ''}
+                <span style="color:white;font-weight:700;font-size:14px;text-shadow:0 1px 3px rgba(0,0,0,0.4);">${teamB.name || 'Time B'}</span>
+              </div>
+              <div style="background:rgba(0,0,0,0.85);padding:8px 18px;display:flex;align-items:center;justify-content:center;">
+                <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:20px;color:white;">${s.scoreB}</span>
+              </div>
+            </div>
+          </div>
+          <div style="width:100%;background:rgba(0,0,0,0.9);padding:4px 16px;display:flex;justify-content:space-between;align-items:center;border-radius:0 0 4px 4px;">
+            ${renderBadge(comp)}
+            <span style="font-size:10px;color:rgba(255,255,255,0.5);font-weight:600;text-transform:uppercase;letter-spacing:1px;">${periodText}</span>
+            ${sport !== 'volei' ? `<span style="font-family:'Orbitron',sans-serif;font-weight:700;font-size:13px;color:white;">${s.timer}</span>` : ''}
+          </div>
+          ${renderSponsorBar(comp)}
+        </div>
+      `;
+    }
+
+    function renderNeon(teamA, teamB, sport, s, periodText, comp) {
+      return `
+        <div style="display:flex;flex-direction:column;align-items:center;font-family:'Outfit',sans-serif;">
+          <div style="display:flex;align-items:stretch;">
+            <div style="flex:1;background:linear-gradient(135deg,${teamA.color}dd,${teamA.color}88);padding:12px 18px;display:flex;align-items:center;gap:10px;clip-path:polygon(0 0,calc(100% - 15px) 0,100% 100%,0 100%);border:1px solid ${teamA.color};border-right:none;">
+              ${teamA.logo ? `<img src="${teamA.logo}" style="width:32px;height:32px;object-fit:contain;">` : ''}
+              <span style="color:white;font-weight:800;font-size:15px;letter-spacing:1px;">${teamA.abbr || 'AAA'}</span>
+            </div>
+            <div style="display:flex;align-items:center;background:rgba(0,0,0,0.92);border-top:1px solid rgba(124,92,252,0.4);border-bottom:1px solid rgba(124,92,252,0.4);z-index:2;">
+              <div style="padding:10px 18px;text-align:center;">
+                <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:26px;color:${teamA.color};text-shadow:0 0 15px ${teamA.color}88;">${s.scoreA}</span>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;padding:6px 12px;border-left:1px solid rgba(255,255,255,0.1);border-right:1px solid rgba(255,255,255,0.1);">
+                <div style="margin-bottom:2px;">${renderBadge(comp)}</div>
+                <span style="font-size:9px;color:rgba(255,255,255,0.4);font-weight:600;text-transform:uppercase;letter-spacing:2px;">${periodText}</span>
+                ${sport !== 'volei' ? `<span style="font-family:'Orbitron',sans-serif;font-weight:700;font-size:14px;color:#00e5d0;">${s.timer}</span>` : ''}
+              </div>
+              <div style="padding:10px 18px;text-align:center;">
+                <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:26px;color:${teamB.color};text-shadow:0 0 15px ${teamB.color}88;">${s.scoreB}</span>
+              </div>
+            </div>
+            <div style="flex:1;background:linear-gradient(135deg,${teamB.color}88,${teamB.color}dd);padding:12px 18px;display:flex;align-items:center;gap:10px;justify-content:flex-end;clip-path:polygon(15px 0,100% 0,100% 100%,0 100%);border:1px solid ${teamB.color};border-left:none;">
+              <span style="color:white;font-weight:800;font-size:15px;letter-spacing:1px;">${teamB.abbr || 'BBB'}</span>
+              ${teamB.logo ? `<img src="${teamB.logo}" style="width:32px;height:32px;object-fit:contain;">` : ''}
+            </div>
+          </div>
+          ${renderSponsorBar(comp)}
+        </div>
+      `;
+    }
+
+    // ── Animation Handlers ──
+
+    function handleAnimationEvent(eventData) {
+      if (!eventData || !eventData.action) return;
+
+      switch (eventData.action) {
+        case 'SHOW_OVERLAY':
+          isVisible = true;
+          root.classList.remove('anim-out');
+          root.classList.add('anim-in');
+          root.style.display = 'block';
+          break;
+
+        case 'HIDE_OVERLAY':
+          isVisible = false;
+          root.classList.remove('anim-in');
+          root.classList.add('anim-out');
+          setTimeout(() => {
+            if (!isVisible) root.style.display = 'none';
+          }, 500);
+          break;
+
+        case 'TRIGGER_BANNER':
+          bannerTitle.textContent = eventData.title || 'GOL!';
+          bannerSubtitle.textContent = eventData.teamA?.name && eventData.teamB?.name ? 
+            `${eventData.teamA.abbr || eventData.teamA.name} × ${eventData.teamB.abbr || eventData.teamB.name}` : 'ASTRO TV';
+          bannerContainer.classList.add('active');
+          setTimeout(() => {
+            bannerContainer.classList.remove('active');
+          }, eventData.duration || 3000);
+          break;
+
+        case 'TRIGGER_CARD':
+          const isYellow = eventData.cardType === 'YELLOW';
+          bannerTitle.textContent = isYellow ? '🟨 CARTÃO AMARELO' : '🟥 CARTÃO VERMELHO';
+          bannerSubtitle.textContent = eventData.team ? `${eventData.team.name}` : 'ASTRO TV';
+          bannerContainer.classList.add('active');
+          setTimeout(() => {
+            bannerContainer.classList.remove('active');
+          }, eventData.duration || 3500);
+          break;
+
+        case 'TRIGGER_SPONSOR':
+          const sponsors = eventData.sponsors || ['ASTRO TV'];
+          bannerTitle.textContent = '🏢 PATROCINADORES';
+          bannerSubtitle.textContent = sponsors.join(' • ');
+          bannerContainer.classList.add('active');
+          setTimeout(() => {
+            bannerContainer.classList.remove('active');
+          }, eventData.duration || 4000);
+          break;
+
+        case 'TRIGGER_VAR':
+          bannerTitle.textContent = '🚨 VAR / REVISÃO DE LANCE';
+          bannerSubtitle.textContent = eventData.title || 'LANCE EM ANÁLISE PELA ARBITRAGEM';
+          bannerContainer.classList.add('active');
+          setTimeout(() => {
+            bannerContainer.classList.remove('active');
+          }, eventData.duration || 5000);
+          break;
+
+        case 'TRIGGER_MVP':
+          bannerTitle.textContent = '🌟 CRAQUE DA PARTIDA';
+          bannerSubtitle.textContent = eventData.player || 'DESTAQUE DO JOGO';
+          bannerContainer.classList.add('active');
+          setTimeout(() => {
+            bannerContainer.classList.remove('active');
+          }, eventData.duration || 6000);
+          break;
+
+        case 'TRIGGER_BROADCASTER':
+          showBroadcasterOverlay(eventData);
+          break;
+
+        case 'TRIGGER_SOCIAL':
+          showSocialOverlay(eventData);
+          break;
+
+        case 'TRIGGER_QRCODE':
+          toggleQRCodeOverlay(eventData);
+          break;
+
+        case 'TRIGGER_TICKER':
+          toggleTickerOverlay(eventData);
+          break;
+
+        case 'TRIGGER_STATS':
+          showStatsOverlay(eventData);
+          break;
+      }
+    }
+
+    function toggleTickerOverlay(data) {
+      let el = document.getElementById('ticker-overlay-element');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'ticker-overlay-element';
+        el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.92);color:white;padding:6px 0;overflow:hidden;white-space:nowrap;font-family:sans-serif;font-size:12px;font-weight:700;z-index:99990;border-top:2px solid #00e5d0;';
+        document.body.appendChild(el);
+      }
+
+      if (data.active) {
+        el.innerHTML = `<div style="display:inline-block;padding-left:100%;animation:tickerScroll 25s linear infinite;">${data.text || ''}</div>`;
+        el.style.display = 'block';
+
+        if (!document.getElementById('ticker-style-anim')) {
+          const style = document.createElement('style');
+          style.id = 'ticker-style-anim';
+          style.innerHTML = `@keyframes tickerScroll { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }`;
+          document.head.appendChild(style);
+        }
+      } else {
+        el.style.display = 'none';
+      }
+    }
+
+    function showStatsOverlay(data) {
+      bannerTitle.textContent = '📊 ESTATÍSTICAS DA PARTIDA';
+      const stats = data.stats || {};
+      const teamA = data.teamA || {};
+      const teamB = data.teamB || {};
+      
+      let items = [];
+      if (data.sport === 'volei') {
+        items = [`Aces: ${stats.acesA || 0} × ${stats.acesB || 0}`, `Bloqueios: ${stats.blocksA || 0} × ${stats.blocksB || 0}`];
+      } else if (data.sport === 'basquete') {
+        items = [`Bolas 3P: ${stats.threePtsA || 0} × ${stats.threePtsB || 0}`];
+      } else {
+        items = [`Chutes: ${stats.shotsA || 0} × ${stats.shotsB || 0}`, `Escanteios: ${stats.cornersA || 0} × ${stats.cornersB || 0}`];
+      }
+
+      bannerSubtitle.textContent = `${teamA.abbr || 'A'} ${items.join('  •  ')} ${teamB.abbr || 'B'}`;
+      bannerContainer.classList.add('active');
+      setTimeout(() => {
+        bannerContainer.classList.remove('active');
+      }, data.duration || 6000);
+    }
+
+    function showBroadcasterOverlay(data) {
+      let el = document.getElementById('broadcaster-overlay-element');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'broadcaster-overlay-element';
+        el.className = 'broadcaster-card-overlay';
+        document.body.appendChild(el);
+      }
+
+      el.innerHTML = `
+        <div style="font-size:24px;">🎙️</div>
+        <div>
+          <div class="role">${data.role || 'TRANSMISSÃO'}</div>
+          <div class="name">${data.name || 'Apresentador'}</div>
+          <div class="handle">${data.handle || ''}</div>
+        </div>
+      `;
+      el.style.display = 'flex';
+
+      setTimeout(() => {
+        el.style.display = 'none';
+      }, data.duration || 5000);
+    }
+
+    function showSocialOverlay(data) {
+      let el = document.getElementById('social-overlay-element');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'social-overlay-element';
+        el.className = 'social-wall-overlay';
+        document.body.appendChild(el);
+      }
+
+      el.innerHTML = `
+        <div class="social-wall-user">💬 ${data.username || '@torcida'}</div>
+        <div class="social-wall-text">"${data.message || ''}"</div>
+      `;
+      el.style.display = 'block';
+
+      setTimeout(() => {
+        el.style.display = 'none';
+      }, data.duration || 6000);
+    }
+
+    function toggleQRCodeOverlay(data) {
+      let el = document.getElementById('qrcode-overlay-element');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'qrcode-overlay-element';
+        el.className = 'qrcode-widget-overlay';
+        document.body.appendChild(el);
+      }
+
+      if (data.active) {
+        el.innerHTML = `
+          <img src="${data.qrUrl}" alt="QR Code">
+          <div class="qrcode-widget-text">${(data.text || 'PIX / Engajamento').replace(/\n/g, '<br>')}</div>
+        `;
+        el.style.display = 'flex';
+      } else {
+        el.style.display = 'none';
+      }
+    }
+
+    // ── Data Sync ──
+
+    // Listen for Scoreboard BroadcastChannel
+    try {
+      const scoreChannel = new BroadcastChannel('astrotv_scoreboard');
+      scoreChannel.onmessage = (e) => updateOverlay(e.data);
+    } catch (e) {}
+
+    // Listen for Animation Events BroadcastChannel
+    try {
+      const animChannel = new BroadcastChannel('astrotv_anim_channel');
+      animChannel.onmessage = (e) => handleAnimationEvent(e.data);
+    } catch (e) {}
+
+    // Realtime API polling from Node Server (Works 100% inside OBS Studio)
+    async function syncFromApi() {
+      try {
+        const stateRes = await fetch('/api/state');
+        if (stateRes.ok) {
+          const data = await stateRes.json();
+          if (data && (!currentData || data.timestamp !== currentData.timestamp)) {
+            updateOverlay(data);
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const animRes = await fetch('/api/anim');
+        if (animRes.ok) {
+          const animEvent = await animRes.json();
+          if (animEvent && animEvent.timestamp && animEvent.timestamp !== window._lastAnimTimestamp) {
+            window._lastAnimTimestamp = animEvent.timestamp;
+            handleAnimationEvent(animEvent);
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Poll every 250ms for ultra-responsive OBS updates
+    setInterval(syncFromApi, 250);
+    syncFromApi();
+
+    // Initial load with default fallback
+    const defaultData = {
+      teamA: { name: 'Time A', abbr: 'AST', color: '#7c5cfc' },
+      teamB: { name: 'Time B', abbr: 'ENV', color: '#00e5d0' },
+      sport: 'futsal',
+      scoreA: 0,
+      scoreB: 0,
+      setsA: 0,
+      setsB: 0,
+      period: 1,
+      timer: '00:00',
+      template: 'modern',
+      competition: {
+        badgeText: 'AO VIVO',
+        sponsors: ['ASTRO TV']
+      }
+    };
+
+    try {
+      const initial = JSON.parse(localStorage.getItem('astrotv_scoreboard_data'));
+      updateOverlay(initial || defaultData);
+    } catch (e) {
+      updateOverlay(defaultData);
+    }
+  </script>
+</body>
+</html>

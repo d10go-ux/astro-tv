@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASTRO TV — Lower Third Overlay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: transparent !important; font-family: 'Inter', sans-serif; overflow: hidden; }
+    #overlay-root {
+      position: fixed;
+      bottom: 60px;
+      left: 40px;
+      z-index: 9999;
+    }
+    @keyframes slideInLeft {
+      from { opacity: 0; transform: translateX(-40px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes slideOutLeft {
+      from { opacity: 1; transform: translateX(0); }
+      to { opacity: 0; transform: translateX(-40px); }
+    }
+    .slide-in { animation: slideInLeft 0.5s ease forwards; }
+    .slide-out { animation: slideOutLeft 0.5s ease forwards; }
+  </style>
+</head>
+<body>
+  <div id="overlay-root"></div>
+  <script>
+    const root = document.getElementById('overlay-root');
+    let currentData = null;
+
+    function updateOverlay(data) {
+      if (!data) return;
+      currentData = data;
+
+      if (!data.visible) {
+        root.innerHTML = '';
+        return;
+      }
+
+      const team = (data.selectedTeam || 'A') === 'A' ? data.teamA : data.teamB;
+      let title = '', subtitle = '';
+
+      if (data.type === 'player') {
+        title = data.playerName || 'Jogador';
+        subtitle = [data.playerNumber ? `#${data.playerNumber}` : '', data.playerPosition || ''].filter(Boolean).join(' • ') || 'Info';
+      } else if (data.type === 'team') {
+        title = team.name || 'Time';
+        subtitle = 'Campeonato';
+      } else {
+        title = data.infoTitle || 'Título';
+        subtitle = data.infoSubtitle || 'Info';
+      }
+
+      if (data.template === 'minimal') {
+        root.innerHTML = `
+          <div class="slide-in" style="display:flex;align-items:stretch;">
+            <div style="width:4px;background:${team.color};border-radius:2px;"></div>
+            <div style="padding:10px 24px;background:rgba(0,0,0,0.75);backdrop-filter:blur(12px);">
+              <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:18px;color:white;">${title}</div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.6);">${subtitle}</div>
+            </div>
+          </div>`;
+      } else if (data.template === 'sport') {
+        root.innerHTML = `
+          <div class="slide-in" style="display:flex;align-items:stretch;overflow:hidden;border-radius:6px;">
+            <div style="background:${team.color};padding:10px 16px;display:flex;align-items:center;justify-content:center;">
+              ${data.type === 'player' && data.playerNumber ? `<span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:white;">${data.playerNumber}</span>` : `<span style="font-family:'Orbitron',sans-serif;font-weight:800;font-size:12px;color:white;letter-spacing:1px;">${team.abbr || '???'}</span>`}
+            </div>
+            <div style="padding:10px 24px;background:rgba(0,0,0,0.9);">
+              <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:18px;color:white;text-transform:uppercase;">${title}</div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;">${subtitle}</div>
+            </div>
+            <div style="width:4px;background:${team.color};"></div>
+          </div>`;
+      } else {
+        root.innerHTML = `
+          <div class="slide-in" style="display:flex;align-items:stretch;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.5);">
+            <div style="width:6px;background:linear-gradient(180deg,${team.color},${team.color}88);"></div>
+            <div style="padding:12px 28px;background:rgba(10,10,20,0.92);backdrop-filter:blur(16px);">
+              <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:20px;color:white;letter-spacing:0.5px;">${title}</div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:2px;">${subtitle}</div>
+            </div>
+          </div>`;
+      }
+    }
+
+    // BroadcastChannel sync
+    try {
+      const channel = new BroadcastChannel('astrotv_lowerthird');
+      channel.onmessage = (e) => updateOverlay(e.data);
+    } catch (e) {}
+
+    // localStorage fallback
+    setInterval(() => {
+      try {
+        const data = JSON.parse(localStorage.getItem('astrotv_lowerthird_data'));
+        if (data && (!currentData || data.timestamp !== currentData.timestamp)) {
+          updateOverlay(data);
+        }
+      } catch (e) {}
+    }, 500);
+
+    // Initial load with default fallback
+    const defaultData = {
+      visible: true,
+      type: 'info',
+      infoTitle: 'ASTRO TV AO VIVO',
+      infoSubtitle: 'Transmissão Esportiva Interescolar',
+      template: 'modern',
+      teamA: { name: 'Time A', color: '#7c5cfc' },
+      teamB: { name: 'Time B', color: '#00e5d0' }
+    };
+
+    try {
+      const initial = JSON.parse(localStorage.getItem('astrotv_lowerthird_data'));
+      updateOverlay(initial || defaultData);
+    } catch (e) {
+      updateOverlay(defaultData);
+    }
+  </script>
+</body>
+</html>
