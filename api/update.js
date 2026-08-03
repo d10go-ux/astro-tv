@@ -1,5 +1,3 @@
-let globalState = null;
-
 module.exports = (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -9,10 +7,12 @@ module.exports = (req, res) => {
     return res.status(200).end();
   }
 
-  if (req.method === 'POST') {
-    globalState = req.body;
-    return res.status(200).json({ status: 'ok', updated: Date.now() });
+  let data = req.body;
+  if (typeof data === 'string') {
+    try {
+      data = JSON.parse(data);
+    } catch (e) {}
   }
 
-  return res.status(200).json(globalState || {});
+  return res.status(200).json(data || { status: 'ok', timestamp: Date.now() });
 };
