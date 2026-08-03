@@ -140,6 +140,9 @@ const App = {
       });
     }
 
+    // Init Auth UI
+    if (typeof OperatorAuth !== 'undefined') OperatorAuth.init();
+
     // Initial route
     App.handleRoute();
   },

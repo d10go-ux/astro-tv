@@ -6,7 +6,11 @@
   <title>ASTRO TV — Scoreboard Overlay</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Firebase v10 Compat SDK for Realtime OBS Overlay -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <script src="../config/firebaseConfig.js"></script>
+
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -596,6 +600,28 @@
         el.style.display = 'none';
       }
     }
+
+    // ── Firebase Realtime Database Global Listener (0ms Global Sync) ──
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomId = urlParams.get('room') || (typeof FirebaseConfig !== 'undefined' ? FirebaseConfig.getRoomId() : 'ASTRO-LIVE');
+
+    try {
+      if (typeof firebase !== 'undefined' && firebase.database) {
+        const db = firebase.database();
+        db.ref(`rooms/${roomId}/scoreboard`).on('value', (snapshot) => {
+          const val = snapshot.val();
+          if (val) updateOverlay(val);
+        });
+
+        db.ref(`rooms/${roomId}/anim`).on('value', (snapshot) => {
+          const val = snapshot.val();
+          if (val && val.timestamp && val.timestamp !== window._lastAnimTimestamp) {
+            window._lastAnimTimestamp = val.timestamp;
+            handleAnimationEvent(val);
+          }
+        });
+      }
+    } catch (e) {}
 
     // ── Instant Realtime Storage Listener (0ms delay on Vercel & Chrome/OBS) ──
     window.addEventListener('storage', (e) => {

@@ -217,6 +217,14 @@ const AnimationControls = {
 
     localStorage.setItem('astrotv_anim_event', JSON.stringify(data));
 
+    // Firebase Realtime Database Cloud Sync
+    try {
+      if (typeof FirebaseConfig !== 'undefined' && FirebaseConfig.db) {
+        const roomId = FirebaseConfig.getRoomId();
+        FirebaseConfig.db.ref(`rooms/${roomId}/anim`).set(data);
+      }
+    } catch (e) {}
+
     // HTTP POST para o servidor API + Nuvem KVDB
     try {
       fetch('/api/anim', {

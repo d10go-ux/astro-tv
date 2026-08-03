@@ -64,6 +64,7 @@ const Scoreboard = {
 
               <!-- TAB 1: ANIMATIONS & BROADCAST -->
               <div class="${(s.activeSidebarTab || 'anim') === 'anim' ? '' : 'hidden'}">
+                ${typeof RoomManager !== 'undefined' ? RoomManager.render() : ''}
                 ${typeof AnimationControls !== 'undefined' ? AnimationControls.render() : ''}
                 ${typeof Soundboard !== 'undefined' ? Soundboard.render() : ''}
                 ${typeof BroadcasterCards !== 'undefined' ? BroadcasterCards.render() : ''}
@@ -778,6 +779,14 @@ const Scoreboard = {
 
     // Salvar no localStorage para o overlay ler
     localStorage.setItem('astrotv_scoreboard_data', JSON.stringify(data));
+
+    // Firebase Realtime Database Cloud Sync (Mundo Inteiro em 0ms)
+    try {
+      if (typeof FirebaseConfig !== 'undefined' && FirebaseConfig.db) {
+        const roomId = FirebaseConfig.getRoomId();
+        FirebaseConfig.db.ref(`rooms/${roomId}/scoreboard`).set(data);
+      }
+    } catch (e) {}
 
     // HTTP POST para o servidor API + Nuvem KVDB (garante sync no OBS Studio instantaneamente no Vercel e Local)
     try {
