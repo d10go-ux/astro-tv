@@ -5,13 +5,13 @@
 
 const FirebaseConfig = {
   defaultConfig: {
-    apiKey: "AIzaSyASTRO_TV_Live_Cloud_2026_Key",
+    apiKey: "AIzaSyCN5ejr-wnBvno_Z8M1M4wffmpZizmvQzo",
     authDomain: "astrotv-live.firebaseapp.com",
     databaseURL: "https://astrotv-live-default-rtdb.firebaseio.com",
     projectId: "astrotv-live",
-    storageBucket: "astrotv-live.appspot.com",
-    messagingSenderId: "1088219920",
-    appId: "1:1088219920:web:astrotv2026demo"
+    storageBucket: "astrotv-live.firebasestorage.app",
+    messagingSenderId: "700807485894",
+    appId: "1:700807485894:web:50564d83e8306c7766bac7"
   },
 
   app: null,
@@ -20,9 +20,7 @@ const FirebaseConfig = {
   isInitialized: false,
 
   isDemoKey() {
-    const savedConfig = JSON.parse(localStorage.getItem('astrotv_custom_firebase_config') || 'null');
-    const key = savedConfig ? savedConfig.apiKey : FirebaseConfig.defaultConfig.apiKey;
-    return key.includes('Demo_Key') || key.includes('_Key');
+    return false;
   },
 
   getConfig() {
