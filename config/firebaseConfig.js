@@ -4,7 +4,6 @@
    ============================================================ */
 
 const FirebaseConfig = {
-  // Configuração padrão do Firebase App (pode ser sobrescrita pelo usuário nas configurações)
   defaultConfig: {
     apiKey: "AIzaSyASTRO_TV_Demo_Key_2026_Project",
     authDomain: "astrotv-live.firebaseapp.com",
@@ -20,9 +19,12 @@ const FirebaseConfig = {
   db: null,
   isInitialized: false,
 
-  /**
-   * Inicializa os serviços do Firebase (Auth & Database)
-   */
+  isDemoKey() {
+    const savedConfig = JSON.parse(localStorage.getItem('astrotv_custom_firebase_config') || 'null');
+    const key = savedConfig ? savedConfig.apiKey : FirebaseConfig.defaultConfig.apiKey;
+    return key.includes('Demo_Key');
+  },
+
   init() {
     if (FirebaseConfig.isInitialized) return;
 
@@ -47,16 +49,10 @@ const FirebaseConfig = {
     }
   },
 
-  /**
-   * Retorna a chave da sala ativa (Stream Key)
-   */
   getRoomId() {
     return localStorage.getItem('astrotv_active_room_id') || 'ASTRO-LIVE';
   },
 
-  /**
-   * Define a chave da sala ativa (Stream Key)
-   */
   setRoomId(roomId) {
     const cleanId = (roomId || 'ASTRO-LIVE').toUpperCase().replace(/[^A-Z0-9_-]/g, '');
     localStorage.setItem('astrotv_active_room_id', cleanId);
@@ -64,7 +60,6 @@ const FirebaseConfig = {
   }
 };
 
-// Autostart Firebase on script load if SDK is ready
 if (typeof firebase !== 'undefined') {
   FirebaseConfig.init();
 }

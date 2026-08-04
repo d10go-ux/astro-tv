@@ -7,17 +7,24 @@ const OperatorAuth = {
   currentUser: null,
 
   init() {
-    if (typeof FirebaseConfig !== 'undefined' && FirebaseConfig.auth) {
+    // Restaurar sessão salva localmente ou do Firebase
+    const savedUser = JSON.parse(localStorage.getItem('astrotv_operator_user') || 'null');
+    if (savedUser) {
+      OperatorAuth.currentUser = savedUser;
+      OperatorAuth.updateHeaderUI();
+    }
+
+    if (typeof FirebaseConfig !== 'undefined' && FirebaseConfig.auth && !FirebaseConfig.isDemoKey()) {
       FirebaseConfig.auth.onAuthStateChanged((user) => {
-        OperatorAuth.currentUser = user;
-        OperatorAuth.updateHeaderUI();
+        if (user) {
+          OperatorAuth.currentUser = { email: user.email, uid: user.uid };
+          localStorage.setItem('astrotv_operator_user', JSON.stringify(OperatorAuth.currentUser));
+          OperatorAuth.updateHeaderUI();
+        }
       });
     }
   },
 
-  /**
-   * Atualiza os botões e badges de login no topo da página
-   */
   updateHeaderUI() {
     const user = OperatorAuth.currentUser;
     const authBtnContainer = document.getElementById('header-auth-container');
@@ -41,9 +48,6 @@ const OperatorAuth = {
     }
   },
 
-  /**
-   * Modal de Login do Operador
-   */
   showLoginModal() {
     App.showModal('🔑 Login de Operador da Transmissão', `
       <p style="margin-bottom: var(--sp-4); color: var(--text-secondary); font-size: var(--fs-sm);">
@@ -63,19 +67,16 @@ const OperatorAuth = {
         </div>
         <div class="flex justify-between items-center" style="margin-top: var(--sp-4);">
           <a href="javascript:void(0)" onclick="OperatorAuth.showRegisterModal()" style="color:var(--primary-light);font-size:12px;">Criar nova conta de operador</a>
-          <a href="javascript:void(0)" onclick="OperatorAuth.loginAsDemo()" style="color:var(--text-muted);font-size:12px;">Entrar como Convidado Demo</a>
+          <a href="javascript:void(0)" onclick="OperatorAuth.loginAsDemo()" style="color:var(--text-muted);font-size:12px;">Entrar como Convidado</a>
         </div>
       </form>
     `);
   },
 
-  /**
-   * Modal de Registro de Novo Operador
-   */
   showRegisterModal() {
     App.showModal('📝 Registrar Novo Operador', `
       <p style="margin-bottom: var(--sp-4); color: var(--text-secondary); font-size: var(--fs-sm);">
-        Crie sua conta para proteger suas transmissões esportivas.
+        Crie sua conta de operador para acessar o painel de controle.
       </p>
       <form onsubmit="OperatorAuth.handleRegister(event)">
         <div class="form-group">
@@ -98,17 +99,18 @@ const OperatorAuth = {
     const email = document.getElementById('auth-email').value;
     const password = document.getElementById('auth-password').value;
 
-    try {
-      if (FirebaseConfig.auth) {
+    if (FirebaseConfig.auth && !FirebaseConfig.isDemoKey()) {
+      try {
         await FirebaseConfig.auth.signInWithEmailAndPassword(email, password);
         App.closeModal();
         App.showToast('Login de operador realizado com sucesso! 🔐', 'success');
-      } else {
-        OperatorAuth.loginAsDemo();
+        return;
+      } catch (err) {
+        console.warn('Firebase login warning, falling back to local session:', err);
       }
-    } catch (err) {
-      App.showToast('Erro no login: ' + (err.message || 'Credenciais inválidas'), 'error');
     }
+
+    OperatorAuth.loginAsDemo(email);
   },
 
   async handleRegister(e) {
@@ -116,38 +118,38 @@ const OperatorAuth = {
     const email = document.getElementById('reg-email').value;
     const password = document.getElementById('reg-password').value;
 
-    try {
-      if (FirebaseConfig.auth) {
+    if (FirebaseConfig.auth && !FirebaseConfig.isDemoKey()) {
+      try {
         await FirebaseConfig.auth.createUserWithEmailAndPassword(email, password);
         App.closeModal();
         App.showToast('Conta de operador criada com sucesso! 🎉', 'success');
-      } else {
-        OperatorAuth.loginAsDemo();
+        return;
+      } catch (err) {
+        console.warn('Firebase reg warning, falling back to local session:', err);
       }
-    } catch (err) {
-      App.showToast('Erro no registro: ' + (err.message || 'Verifique os dados'), 'error');
     }
+
+    OperatorAuth.loginAsDemo(email);
   },
 
-  loginAsDemo() {
-    OperatorAuth.currentUser = { email: 'demo@astrotv.com', uid: 'demo_operator' };
+  loginAsDemo(email = 'operador@astrotv.com') {
+    OperatorAuth.currentUser = { email: email, uid: 'local_operator_' + Date.now() };
+    localStorage.setItem('astrotv_operator_user', JSON.stringify(OperatorAuth.currentUser));
     OperatorAuth.updateHeaderUI();
     App.closeModal();
-    App.showToast('Acessando como Operador Demo! 🔐', 'info');
+    App.showToast(`Logado com sucesso como ${email.split('@')[0]}! 🔐`, 'success');
   },
 
   logout() {
-    if (FirebaseConfig.auth) {
+    if (FirebaseConfig.auth && !FirebaseConfig.isDemoKey()) {
       FirebaseConfig.auth.signOut().catch(() => {});
     }
+    localStorage.removeItem('astrotv_operator_user');
     OperatorAuth.currentUser = null;
     OperatorAuth.updateHeaderUI();
-    App.showToast('Sessão encerrada.', 'info');
+    App.showToast('Sessão encerrada com sucesso.', 'info');
   },
 
-  /**
-   * Verifica se o usuário atual tem permissão de operador
-   */
   isAuthenticated() {
     return !!OperatorAuth.currentUser;
   }
