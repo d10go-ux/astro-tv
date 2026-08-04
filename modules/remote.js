@@ -102,6 +102,9 @@ const MobileRemote = {
               <button class="btn btn-secondary" onclick="AnimationControls.triggerVAR()">
                 🚨 Alerta de VAR
               </button>
+              <button class="btn btn-secondary" onclick="AnimationControls.triggerStinger()" style="grid-column: span 2; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: black; font-weight: 800;">
+                ⚡ Transição Stinger Wipe
+              </button>
             </div>
           </div>
         </div>

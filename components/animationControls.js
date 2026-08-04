@@ -79,6 +79,12 @@ const AnimationControls = {
               <span class="anim-icon">🌟</span>
               <span>Craque do Jogo</span>
             </button>
+
+            <!-- Stinger Wipe Transition -->
+            <button class="btn-anim" onclick="AnimationControls.triggerStinger()">
+              <span class="anim-icon">⚡</span>
+              <span>Stinger Wipe</span>
+            </button>
           </div>
         </div>
       </div>
@@ -204,6 +210,15 @@ const AnimationControls = {
       duration: 6000
     });
     App.showToast(`Vinheta de Craque do Jogo (${playerName}) disparada no OBS! 🌟`, 'success');
+  },
+
+  triggerStinger() {
+    AnimationControls.sendAnimationEvent({
+      action: 'TRIGGER_STINGER',
+      timestamp: Date.now()
+    });
+    if (typeof Soundboard !== 'undefined') Soundboard.playWhoosh();
+    App.showToast('⚡ Stinger Wipe de transição disparado no OBS!', 'info');
   },
 
   /**

@@ -469,6 +469,34 @@
         case 'TRIGGER_LINEUP':
           showLineupOverlay(eventData);
           break;
+
+        case 'TRIGGER_STINGER':
+          triggerStingerWipe(eventData);
+          break;
+      }
+    }
+
+    function triggerStingerWipe(data) {
+      let stinger = document.getElementById('stinger-overlay');
+      if (!stinger) {
+        stinger = document.createElement('div');
+        stinger.id = 'stinger-overlay';
+        stinger.innerHTML = `
+          <div class="stinger-blade" id="stinger-blade-el">
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) skewX(25deg);font-family:'Orbitron',sans-serif;font-weight:900;font-size:36px;color:white;text-shadow:0 0 30px #00e5d0;display:flex;align-items:center;gap:14px;">
+              <span style="font-size:44px;">📡</span> ASTRO TV
+            </div>
+          </div>
+        `;
+        document.body.appendChild(stinger);
+      }
+
+      const blade = document.getElementById('stinger-blade-el');
+      if (blade) {
+        blade.classList.remove('active');
+        void blade.offsetWidth; // Force reflow for keyframe animation reset
+        blade.classList.add('active');
+        setTimeout(() => blade.classList.remove('active'), 1000);
       }
     }
 
