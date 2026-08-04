@@ -43,11 +43,51 @@ const FirebaseConfig = {
 
         FirebaseConfig.auth = firebase.auth();
         FirebaseConfig.db = firebase.database();
+        if (typeof firebase.firestore === 'function') {
+          FirebaseConfig.firestore = firebase.firestore();
+        }
         FirebaseConfig.isInitialized = true;
-        console.log('⚡ ASTRO TV Firebase initialized with databaseURL:', cfg.databaseURL);
+        console.log('⚡ ASTRO TV Firebase & Firestore initialized!');
       }
     } catch (err) {
       console.warn('Firebase init warning:', err);
+    }
+  },
+
+  firestore: null,
+
+  /**
+   * Salva um time na coleção do Firestore ('teams')
+   */
+  async saveTeamToFirestore(teamData) {
+    try {
+      if (FirebaseConfig.firestore) {
+        await FirebaseConfig.firestore.collection('teams').doc(teamData.name || 'time').set({
+          ...teamData,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        console.log('🔥 Time salvo no Firestore:', teamData.name);
+      }
+    } catch (err) {
+      console.warn('Firestore save error:', err);
+    }
+  },
+
+  /**
+   * Salva uma partida na coleção do Firestore ('matches')
+   */
+  async saveMatchToFirestore(matchData) {
+    try {
+      if (FirebaseConfig.firestore) {
+        const roomId = FirebaseConfig.getRoomId();
+        await FirebaseConfig.firestore.collection('matches').doc(roomId).set({
+          ...matchData,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        console.log('🔥 Partida salva no Firestore:', roomId);
+      }
+    } catch (err) {
+      console.warn('Firestore match save error:', err);
     }
   },
 

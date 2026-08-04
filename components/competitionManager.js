@@ -7,6 +7,30 @@ const CompetitionManager = {
   // Presets padrão de competição
   presets: [
     {
+      id: 'imprensa_jovem',
+      name: '🎥 Imprensa Jovem Oficial',
+      tournament: 'IMPRENSA JOVEM — TRANSMISSÃO ESCOLAR',
+      badgeText: 'IMPRENSA JOVEM',
+      themeColor: '#00e5d0',
+      sponsors: ['IMPRENSA JOVEM', 'DIRETORIA DE ENSINO']
+    },
+    {
+      id: 'jogos_escolares',
+      name: '🏫 Jogos Escolares 2026',
+      tournament: 'JOGOS ESCOLARES 2026',
+      badgeText: 'AO VIVO',
+      themeColor: '#7c5cfc',
+      sponsors: ['ESCOLA PÚBLICA', 'IMPRENSA JOVEM']
+    },
+    {
+      id: 'interclasses',
+      name: '🏆 Torneio Interclasses',
+      tournament: 'TORNEIO INTERCLASSES ESCOLAR',
+      badgeText: 'AO VIVO',
+      themeColor: '#ff6b9d',
+      sponsors: ['GRÊMIO ESTUDANTIL']
+    },
+    {
       id: 'friendly',
       name: '🤝 Amistoso',
       tournament: 'AMISTOSO PREPARATÓRIO',
