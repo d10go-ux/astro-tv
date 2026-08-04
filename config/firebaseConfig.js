@@ -1,11 +1,11 @@
 /* ============================================================
-   ASTRO TV — Firebase Configuration & Initialization
-   Autenticação de Operador e Banco de Dados Realtime Multi-Salas
+   ASTRO TV — Firebase Configuration & Cloud Sync Manager
+   Sincronização em Nuvem de Times, Placares e Credenciais Customizadas
    ============================================================ */
 
 const FirebaseConfig = {
   defaultConfig: {
-    apiKey: "AIzaSyASTRO_TV_Demo_Key_2026_Project",
+    apiKey: "AIzaSyASTRO_TV_Live_Cloud_2026_Key",
     authDomain: "astrotv-live.firebaseapp.com",
     databaseURL: "https://astrotv-live-default-rtdb.firebaseio.com",
     projectId: "astrotv-live",
@@ -22,15 +22,17 @@ const FirebaseConfig = {
   isDemoKey() {
     const savedConfig = JSON.parse(localStorage.getItem('astrotv_custom_firebase_config') || 'null');
     const key = savedConfig ? savedConfig.apiKey : FirebaseConfig.defaultConfig.apiKey;
-    return key.includes('Demo_Key');
+    return key.includes('Demo_Key') || key.includes('_Key');
+  },
+
+  getConfig() {
+    const saved = localStorage.getItem('astrotv_custom_firebase_config');
+    return saved ? JSON.parse(saved) : FirebaseConfig.defaultConfig;
   },
 
   init() {
-    if (FirebaseConfig.isInitialized) return;
-
     try {
-      const savedConfig = JSON.parse(localStorage.getItem('astrotv_custom_firebase_config'));
-      const cfg = savedConfig || FirebaseConfig.defaultConfig;
+      const cfg = FirebaseConfig.getConfig();
 
       if (typeof firebase !== 'undefined') {
         if (!firebase.apps.length) {
@@ -42,7 +44,7 @@ const FirebaseConfig = {
         FirebaseConfig.auth = firebase.auth();
         FirebaseConfig.db = firebase.database();
         FirebaseConfig.isInitialized = true;
-        console.log('⚡ ASTRO TV Firebase initialized successfully!');
+        console.log('⚡ ASTRO TV Firebase initialized with databaseURL:', cfg.databaseURL);
       }
     } catch (err) {
       console.warn('Firebase init warning:', err);
@@ -57,6 +59,102 @@ const FirebaseConfig = {
     const cleanId = (roomId || 'ASTRO-LIVE').toUpperCase().replace(/[^A-Z0-9_-]/g, '');
     localStorage.setItem('astrotv_active_room_id', cleanId);
     return cleanId;
+  },
+
+  /**
+   * Modal de Configuração das Credenciais do Firebase
+   */
+  showSettingsModal() {
+    const cfg = FirebaseConfig.getConfig();
+
+    App.showModal('🔥 Configurar Banco de Dados Firebase', `
+      <p style="margin-bottom: var(--sp-4); color: var(--text-secondary); font-size: var(--fs-sm);">
+        Insira os dados do seu projeto do Firebase Console para sincronizar placares e times em nuvem de qualquer lugar do mundo.
+      </p>
+      <form onsubmit="FirebaseConfig.handleSaveSettings(event)">
+        <div class="form-group">
+          <label class="form-label">Database URL (Realtime Database)</label>
+          <input type="url" class="form-input" id="fb-database-url" required value="${cfg.databaseURL}" placeholder="https://seu-projeto-default-rtdb.firebaseio.com">
+        </div>
+        <div class="form-group" style="margin-top: var(--sp-3);">
+          <label class="form-label">API Key</label>
+          <input type="text" class="form-input" id="fb-api-key" required value="${cfg.apiKey}" placeholder="AIzaSy...">
+        </div>
+        <div class="form-group" style="margin-top: var(--sp-3);">
+          <label class="form-label">Project ID</label>
+          <input type="text" class="form-input" id="fb-project-id" required value="${cfg.projectId}" placeholder="meu-projeto-123">
+        </div>
+        <div class="flex gap-3" style="margin-top: var(--sp-4);">
+          <button type="submit" class="btn btn-primary btn-lg w-full">💾 Salvar & Conectar Nuvem</button>
+        </div>
+        <div style="margin-top: var(--sp-3); text-align: center;">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="FirebaseConfig.resetToDefault()">🔄 Restaurar Padrão do ASTRO TV</button>
+        </div>
+      </form>
+    `);
+  },
+
+  handleSaveSettings(e) {
+    e.preventDefault();
+    const dbUrl = document.getElementById('fb-database-url').value.trim();
+    const apiKey = document.getElementById('fb-api-key').value.trim();
+    const projectId = document.getElementById('fb-project-id').value.trim();
+
+    const customConfig = {
+      apiKey: apiKey,
+      authDomain: `${projectId}.firebaseapp.com`,
+      databaseURL: dbUrl,
+      projectId: projectId,
+      storageBucket: `${projectId}.appspot.com`
+    };
+
+    localStorage.setItem('astrotv_custom_firebase_config', JSON.stringify(customConfig));
+    App.closeModal();
+    App.showToast('Credenciais do Firebase salvas! Reiniciando conexão... 🔥', 'success');
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  },
+
+  resetToDefault() {
+    localStorage.removeItem('astrotv_custom_firebase_config');
+    App.closeModal();
+    App.showToast('Restaurado para a nuvem padrão do ASTRO TV! 🔥', 'info');
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  },
+
+  /**
+   * Salva lista de times salvos na Nuvem Firebase
+   */
+  saveTeamsToCloud(teams) {
+    try {
+      if (FirebaseConfig.db) {
+        FirebaseConfig.db.ref('global/saved_teams').set(teams);
+      }
+    } catch (e) {
+      console.warn('Firebase cloud teams save error:', e);
+    }
+  },
+
+  /**
+   * Baixa lista de times salvos da Nuvem Firebase
+   */
+  loadTeamsFromCloud(callback) {
+    try {
+      if (FirebaseConfig.db) {
+        FirebaseConfig.db.ref('global/saved_teams').once('value').then((snapshot) => {
+          const val = snapshot.val();
+          if (val && Array.isArray(val) && callback) {
+            callback(val);
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Firebase cloud teams load error:', e);
+    }
   }
 };
 

@@ -28,9 +28,12 @@ const RoomManager = {
               </button>
             </div>
           </div>
-          <div class="flex justify-between items-center" style="margin-top:8px;">
+          <div class="flex justify-between items-center" style="margin-top:8px; flex-wrap:wrap; gap:6px;">
             <button class="btn btn-ghost btn-sm" onclick="RoomManager.copyObsUrl()">
               📋 Copiar URL do OBS com esta Sala
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="FirebaseConfig.showSettingsModal()">
+              🔥 Credenciais do Firebase
             </button>
             <button class="btn btn-ghost btn-sm" onclick="RoomManager.generateRandomRoom()">
               🎲 Gerar Sala Aleatória

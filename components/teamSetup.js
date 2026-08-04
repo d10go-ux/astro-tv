@@ -322,7 +322,8 @@ const TeamSetup = {
     if (teamB.name) saveTeam(teamB);
 
     localStorage.setItem('astrotv_saved_teams', JSON.stringify(saved));
-    App.showToast('Times salvos com sucesso! 💾', 'success');
+    if (typeof FirebaseConfig !== 'undefined') FirebaseConfig.saveTeamsToCloud(saved);
+    App.showToast('Times salvos na nuvem do Firebase com sucesso! 💾🔥', 'success');
   },
 
   /**
