@@ -1,5 +1,13 @@
-@import url('styles/base.css');
-@import url('styles/components.css');
+/* ============================================================
+   ASTRO TV — Design System
+   Tema: Dark Space / Neon Purple-Cyan
+   Fonts: Outfit (display) | Inter (body) | Orbitron (numbers)
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+
+/* ──────────────── CSS Variables ──────────────── */
+:root {
   /* Backgrounds */
   --bg-deep: #04040e;
   --bg-primary: #060613;
