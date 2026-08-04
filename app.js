@@ -225,6 +225,10 @@ const App = {
         container.innerHTML = typeof ScoreboardBuilder !== 'undefined' ? ScoreboardBuilder.render() : '';
         break;
 
+      case '/remote':
+        container.innerHTML = typeof MobileRemote !== 'undefined' ? MobileRemote.render() : '';
+        break;
+
       default:
         container.innerHTML = App.renderDashboard();
     }

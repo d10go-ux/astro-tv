@@ -601,9 +601,9 @@
       }
     }
 
-    // ── Firebase Realtime Database Global Listener (0ms Global Sync) ──
+    // ── Direct Firebase Realtime Database Listener (0ms Global Sync) ──
     const urlParams = new URLSearchParams(window.location.search);
-    const roomId = urlParams.get('room') || (typeof FirebaseConfig !== 'undefined' ? FirebaseConfig.getRoomId() : 'ASTRO-LIVE');
+    const roomId = (urlParams.get('room') || (typeof FirebaseConfig !== 'undefined' ? FirebaseConfig.getRoomId() : 'ASTRO-LIVE')).toUpperCase();
 
     try {
       if (typeof firebase !== 'undefined' && firebase.database) {
@@ -621,9 +621,11 @@
           }
         });
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Firebase sync error:', e);
+    }
 
-    // ── Instant Realtime Storage Listener (0ms delay on Vercel & Chrome/OBS) ──
+    // ── Instant Realtime Storage Listener (0ms delay on Same Origin) ──
     window.addEventListener('storage', (e) => {
       if (e.key === 'astrotv_scoreboard_data' && e.newValue) {
         try { updateOverlay(JSON.parse(e.newValue)); } catch (err) {}
@@ -644,46 +646,6 @@
       const animChannel = new BroadcastChannel('astrotv_anim_channel');
       animChannel.onmessage = (e) => handleAnimationEvent(e.data);
     } catch (e) {}
-
-    // Realtime API polling from Node Server & Cloud KV (Works 100% inside OBS Studio)
-    async function syncFromApi() {
-      try {
-        let data = null;
-        const stateRes = await fetch('/api/state');
-        if (stateRes.ok) {
-          data = await stateRes.json();
-        }
-        if (!data || !data.timestamp) {
-          const cloudRes = await fetch('https://kvdb.io/Wf8X8ZgJ8jZ7Xp6J9q8Z2k/astrotv_state');
-          if (cloudRes.ok) data = await cloudRes.json();
-        }
-
-        if (data && (data.teamA || data.scoreA !== undefined)) {
-          updateOverlay(data);
-        }
-      } catch (e) {}
-
-      try {
-        let animEvent = null;
-        const animRes = await fetch('/api/anim');
-        if (animRes.ok) {
-          animEvent = await animRes.json();
-        }
-        if (!animEvent || !animEvent.timestamp) {
-          const cloudAnimRes = await fetch('https://kvdb.io/Wf8X8ZgJ8jZ7Xp6J9q8Z2k/astrotv_anim');
-          if (cloudAnimRes.ok) animEvent = await cloudAnimRes.json();
-        }
-
-        if (animEvent && animEvent.timestamp && animEvent.timestamp !== window._lastAnimTimestamp) {
-          window._lastAnimTimestamp = animEvent.timestamp;
-          handleAnimationEvent(animEvent);
-        }
-      } catch (e) {}
-    }
-
-    // Poll every 250ms for ultra-responsive OBS updates
-    setInterval(syncFromApi, 250);
-    syncFromApi();
 
     // Initial load with default fallback
     const defaultData = {
