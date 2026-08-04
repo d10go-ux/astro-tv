@@ -229,6 +229,10 @@ const App = {
         container.innerHTML = typeof MobileRemote !== 'undefined' ? MobileRemote.render() : '';
         break;
 
+      case '/control':
+        container.innerHTML = typeof CompactControl !== 'undefined' ? CompactControl.render() : '';
+        break;
+
       default:
         container.innerHTML = App.renderDashboard();
     }

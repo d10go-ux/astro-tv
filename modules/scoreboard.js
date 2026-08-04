@@ -67,6 +67,7 @@ const Scoreboard = {
 
               <!-- TAB 1: ANIMATIONS & BROADCAST -->
               <div class="${(s.activeSidebarTab || 'anim') === 'anim' ? '' : 'hidden'}">
+                ${typeof StreamLinksCard !== 'undefined' ? StreamLinksCard.render() : ''}
                 ${typeof RoomManager !== 'undefined' ? RoomManager.render() : ''}
                 ${typeof AnimationControls !== 'undefined' ? AnimationControls.render() : ''}
                 ${typeof Soundboard !== 'undefined' ? Soundboard.render() : ''}
